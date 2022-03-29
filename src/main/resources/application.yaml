@@ -1,0 +1,11 @@
+netty:
+  tcp-port: 9055
+  boss-count: 1
+  worker-count: 2
+  keep-alive: true
+  backlog: 100
+  read-timeout: 30
+
+script-server:
+  path-to-scripts: C:\Users\Peter\AppData\Local\GalileoSky\Configurator4\abin
+  finished-script-store-hours: 20

@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Скрипты EasyLogic(tm) - сервер обновлений</title>
+    <link rel="stylesheet" href="/webjars/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/webjars/bootstrap-table/bootstrap-table.min.css" />
+    <script src="/webjars/jquery/jquery.min.js"></script>
+    <script src="/webjars/bootstrap/js/bootstrap.min.js" ></script>
+    <script src="/webjars/bootstrap-table/bootstrap-table.min.js" ></script>
+  </head>
+  <body>
+    <div class="container"><br/>
+      <table data-toggle="table" class="table table-striped table-hover table-sm caption-top"
+             id="table-active-sessions">
+        <caption>Текущие загрузки</caption>
+        <thead>
+        <tr>
+          <th data-field="imei">IMEI</th>
+          <th data-field="script">Скрипт</th>
+          <th data-field="progress">Прогресс</th>
+          <th data-field="started">Начало скачивания</th>
+          <th data-field="estimated">Окончание (расч.)</th>
+          <th data-field="duration">Длит. соед. (сек)</th>
+          <th data-field="requestCount">Запросов</th>
+          <th data-field="retryCount">Повторных</th>
+        </tr>
+        </thead>
+      </table>
+
+      <table data-toggle="table" class="table table-striped table-hover table-sm caption-top"
+             id="table-finished-sessions">
+        <caption>Завершенные загрузки</caption>
+        <thead>
+        <tr>
+          <th data-field="imei">IMEI</th>
+          <th data-field="script">Скрипт</th>
+          <th data-field="started">Начало скачивания</th>
+          <th data-field="status">Статус</th>
+          <th data-field="duration">Длит. сессии (сек)</th>
+        </tr>
+        </thead>
+      </table>
+
+    </div>
+
+  <script>
+    function fetchSessions() {
+      fetch('/r/sessions')
+        .then((response) => {
+          return response.json();
+        })
+        .then((data) => {
+           setActiveSessionTableData(data.active);
+           setFinishedSessionTableData(data.finished);
+        });
+    }
+
+    function formatScriptSize(sizeInBytes) {
+      if (sizeInBytes < 0)
+        return ''
+      else
+        return '(' +
+             (sizeInBytes < 1000
+                ? sizeInBytes + ' Байт)'
+                : Math.round(sizeInBytes / 1000) + ' Кб)')
+    }
+
+    function formatSessionStatus(status) {
+      switch (status) {
+        case 'SUCCESS':
+          return 'Успешно'
+        case 'INCOMPLETE':
+          return 'Не скачан'
+        case 'SCRIPT_MISSED':
+          return 'Не существует'
+        default:
+          return status
+      }
+    }
+
+    function setActiveSessionTableData(data) {
+      let mapped = data.map(d => {
+        return {
+          imei: d.equipmentId,
+          script: d.scriptName + ' ' + formatScriptSize(d.scriptSize),
+          started: new Date(d.sessionStartTime).toLocaleTimeString(),
+          progress: d.progress + '%',
+          estimated: new Date(d.estimatedEndTime).toLocaleTimeString(),
+          duration: d.connectionDuration,
+          requestCount: d.requestCount,
+          retryCount: d.retryCount
+        }})
+
+      $('#table-active-sessions').bootstrapTable('load', mapped)
+    }
+
+    function setFinishedSessionTableData(data) {
+      let mapped = data.map(d => {
+        return {
+          imei: d.equipmentId,
+          script: d.scriptName + ' ' + formatScriptSize(d.scriptSize),
+          started: new Date(d.sessionStartTime).toLocaleTimeString(),
+          status: formatSessionStatus(d.sessionStatus),
+          duration: d.sessionDuration,
+        }})
+
+      $('#table-finished-sessions').bootstrapTable('load', mapped)
+    }
+
+    $('#table-active-sessions').bootstrapTable({formatNoMatches: function() { return '-----'}});
+    $('#table-finished-sessions').bootstrapTable({formatNoMatches: function() { return '-----'}});
+
+    setInterval(fetchSessions, 2000)
+  </script>
+  </body>
+</html>
